@@ -16,12 +16,6 @@ YouTubeの登録チャンネル動画を1クリックで非表示にして整理
 3. 「パッケージ化されていない拡張機能を読み込む」を押す
 4. このフォルダを選ぶ
 
-フォルダ:
-
-```text
-C:\Users\asato\Documents\Playground\youtube-subscription-hider
-```
-
 ## メモ
 
 通常はYouTube公式の非表示操作を使うため、拡張機能を消してもYouTube側の状態が残ります。公式メニュー項目が見つからなかった場合だけ、非表示データを `chrome.storage.local` に保存します。
