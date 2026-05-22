@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>登録チャンネル動画ハイダー</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>端末内の非表示動画</h1>
+        <p id="summary">読み込み中...</p>
+      </header>
+
+      <section id="empty" hidden>
+        <p>端末内だけで非表示にした動画はありません。</p>
+      </section>
+
+      <section id="list" aria-label="非表示動画一覧"></section>
+
+      <footer>
+        <button id="restoreAll" type="button">すべて表示に戻す</button>
+      </footer>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
