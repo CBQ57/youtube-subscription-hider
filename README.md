@@ -1,4 +1,4 @@
-インストール
+ダウンロード
 [youtube-subscription-hider.zip](https://github.com/user-attachments/files/28132133/youtube-subscription-hider.zip)
 
 
