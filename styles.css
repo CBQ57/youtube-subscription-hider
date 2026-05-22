@@ -1,12 +1,8 @@
-.ysh-hide-target {
-  position: relative !important;
-}
-
 .ysh-hide-button {
-  position: absolute;
+  position: fixed;
   left: 8px;
   top: 8px;
-  z-index: 9999;
+  z-index: 1000001;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -39,6 +35,7 @@ ytd-grid-video-renderer:hover .ysh-hide-button,
 ytd-video-renderer:hover .ysh-hide-button,
 ytd-compact-video-renderer:hover .ysh-hide-button,
 .ysh-card-active .ysh-hide-button,
+.ysh-hide-button-visible,
 .ysh-hide-button:focus-visible {
   opacity: 1;
   pointer-events: auto;

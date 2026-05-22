@@ -18,15 +18,21 @@ const OFFICIAL_HIDE_LABELS = [
 
 let hiddenVideos = {};
 let observer;
+let activeCard = null;
+let floatingButton = null;
+let hideFloatingButtonTimer = 0;
 
 init();
 
 async function init() {
   hiddenVideos = await getHiddenVideos();
+  ensureFloatingButton();
   hideKnownCards();
   decorateCards();
   updateRestoreBar();
   startObserver();
+  window.addEventListener("scroll", updateFloatingButtonPosition, true);
+  window.addEventListener("resize", updateFloatingButtonPosition);
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== "local" || !changes[STORAGE_KEY]) return;
@@ -60,42 +66,12 @@ function decorateCards() {
 
     if (card.dataset.yshReady === "true" && card.dataset.yshVideoId === video.id) continue;
 
-    for (const oldButton of card.querySelectorAll(".ysh-hide-button")) {
-      oldButton.remove();
-    }
-
     card.dataset.yshReady = "true";
     card.dataset.yshVideoId = video.id;
     card.classList.toggle("ysh-card-hidden", Boolean(hiddenVideos[video.id]));
 
     card.classList.add("ysh-hide-target");
     wireCardVisibilityState(card);
-
-    const button = document.createElement("button");
-    button.className = "ysh-hide-button";
-    button.type = "button";
-    button.title = "この動画を非表示";
-    button.setAttribute("aria-label", "この動画を非表示");
-    button.textContent = "非表示";
-    button.addEventListener("click", async (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-
-      button.disabled = true;
-      button.textContent = "処理中";
-
-      const usedOfficialHide = await hideVideoWithYouTubeMenu(card);
-      if (usedOfficialHide) {
-        showToast("YouTubeで非表示にしました");
-        return;
-      }
-
-      await hideVideoLocally(card, readVideo(card));
-      button.disabled = false;
-      button.textContent = "非表示";
-    });
-
-    card.appendChild(button);
   }
 }
 
@@ -103,13 +79,103 @@ function wireCardVisibilityState(card) {
   if (card.dataset.yshVisibilityReady === "true") return;
 
   card.dataset.yshVisibilityReady = "true";
-  card.addEventListener("pointerenter", () => card.classList.add("ysh-card-active"));
-  card.addEventListener("pointerdown", () => card.classList.add("ysh-card-active"));
-  card.addEventListener("focusin", () => card.classList.add("ysh-card-active"));
-  card.addEventListener("pointerleave", () => card.classList.remove("ysh-card-active"));
+  card.addEventListener("pointerenter", () => showFloatingButtonForCard(card));
+  card.addEventListener("pointermove", () => showFloatingButtonForCard(card));
+  card.addEventListener("pointerdown", () => showFloatingButtonForCard(card));
+  card.addEventListener("focusin", () => showFloatingButtonForCard(card));
+  card.addEventListener("pointerleave", scheduleFloatingButtonHide);
   card.addEventListener("focusout", () => {
-    if (!card.matches(":hover")) card.classList.remove("ysh-card-active");
+    if (!card.matches(":hover")) scheduleFloatingButtonHide();
   });
+}
+
+function ensureFloatingButton() {
+  if (floatingButton) return floatingButton;
+
+  floatingButton = document.createElement("button");
+  floatingButton.className = "ysh-hide-button";
+  floatingButton.type = "button";
+  floatingButton.title = "この動画を非表示";
+  floatingButton.setAttribute("aria-label", "この動画を非表示");
+  floatingButton.textContent = "非表示";
+  floatingButton.addEventListener("pointerenter", () => {
+    window.clearTimeout(hideFloatingButtonTimer);
+  });
+  floatingButton.addEventListener("pointerleave", scheduleFloatingButtonHide);
+  floatingButton.addEventListener("click", hideActiveVideo);
+
+  document.documentElement.appendChild(floatingButton);
+  return floatingButton;
+}
+
+function showFloatingButtonForCard(card) {
+  if (card.classList.contains("ysh-card-hidden")) return;
+
+  activeCard = card;
+  window.clearTimeout(hideFloatingButtonTimer);
+  updateFloatingButtonPosition();
+  ensureFloatingButton().classList.add("ysh-hide-button-visible");
+}
+
+function scheduleFloatingButtonHide() {
+  window.clearTimeout(hideFloatingButtonTimer);
+  hideFloatingButtonTimer = window.setTimeout(() => {
+    if (floatingButton?.matches(":hover") || activeCard?.matches(":hover")) return;
+    activeCard = null;
+    floatingButton?.classList.remove("ysh-hide-button-visible");
+  }, 160);
+}
+
+function updateFloatingButtonPosition() {
+  if (!activeCard || !floatingButton) return;
+  if (!document.documentElement.contains(activeCard)) {
+    activeCard = null;
+    floatingButton.classList.remove("ysh-hide-button-visible");
+    return;
+  }
+
+  const target = getThumbnailTarget(activeCard) || activeCard;
+  const rect = target.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return;
+
+  floatingButton.style.left = `${Math.max(8, rect.left + 8)}px`;
+  floatingButton.style.top = `${Math.max(8, rect.top + 8)}px`;
+}
+
+function getThumbnailTarget(card) {
+  return (
+    card.querySelector("a#thumbnail") ||
+    card.querySelector("#thumbnail") ||
+    card.querySelector("a.ytd-thumbnail") ||
+    card.querySelector("a[href*='/watch']")
+  );
+}
+
+async function hideActiveVideo(event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const card = activeCard;
+  if (!card) return;
+
+  floatingButton.disabled = true;
+  floatingButton.textContent = "処理中";
+
+  const usedOfficialHide = await hideVideoWithYouTubeMenu(card);
+  if (usedOfficialHide) {
+    showToast("YouTubeで非表示にしました");
+    activeCard = null;
+    floatingButton.classList.remove("ysh-hide-button-visible");
+    floatingButton.disabled = false;
+    floatingButton.textContent = "非表示";
+    return;
+  }
+
+  await hideVideoLocally(card, readVideo(card));
+  activeCard = null;
+  floatingButton.classList.remove("ysh-hide-button-visible");
+  floatingButton.disabled = false;
+  floatingButton.textContent = "非表示";
 }
 
 function hideKnownCards() {
