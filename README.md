@@ -1,3 +1,7 @@
+インストール
+[youtube-subscription-hider.zip](https://github.com/user-attachments/files/28132133/youtube-subscription-hider.zip)
+
+
 # 登録チャンネル動画ハイダー
 
 YouTubeの登録チャンネル動画を1クリックで非表示にして整理するChrome拡張機能です。
